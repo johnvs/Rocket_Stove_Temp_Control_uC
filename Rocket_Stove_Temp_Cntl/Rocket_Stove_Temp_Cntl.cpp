@@ -25,17 +25,6 @@
 /// @details	<#details#>
 /// @n @a		Developed with [embedXcode+](http://embedXcode.weebly.com)
 ///
-/// @author		john
-/// @author		john
-/// @date		1/25/17 11:26 AM
-/// @version	<#version#>
-///
-/// @copyright	(c) john, 2017
-/// @copyright	All rights reserved
-///
-/// @see		ReadMe.txt for references
-/// @n
-///
 
 
 //#include "Arduino.h"
