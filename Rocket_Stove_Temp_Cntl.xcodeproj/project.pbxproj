@@ -5901,7 +5901,6 @@
 		AAAA170125112751AA0005B2 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
-				52042CEC1E3947CB000327FE /* TC_Interface_MAX31855 */,
 				AAAA170125112751AA0005B3 /* Adafruit_MAX31855 */,
 				AAAA170125112751AA0005B6 /* Adafruit_Motorshield */,
 				AAAA170125112751AA0005BC /* Adafruit_Motorshield_Teensy */,
@@ -5920,6 +5919,7 @@
 				AAAA170125112751AA0006A2 /* Ping */,
 				AAAA170125112751AA0006A5 /* SerialCommandParser */,
 				AAAA170125112751AA0006A8 /* StandardCplusplus */,
+				52042CEC1E3947CB000327FE /* TC_Interface_MAX31855 */,
 				AAAA170125112751AA0006D8 /* Ticker */,
 			);
 			name = Libraries;

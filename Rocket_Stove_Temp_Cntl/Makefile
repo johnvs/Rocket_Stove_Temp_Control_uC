@@ -126,7 +126,7 @@ NO_SERIAL_CONSOLE =
 # BOARD_TAG is required
 # If not defined, error BOARD_TAG not defined
 #
-#BOARD_TAG  = uno
+#BOARD_TAG  = teensy3
 
 # BOARD_PORT is optional
 # If not defined, BOARD_PORT = /dev/tty.usb* (default)
