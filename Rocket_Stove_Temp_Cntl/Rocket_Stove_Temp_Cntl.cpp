@@ -2,28 +2,16 @@
 /// @mainpage	Rocket_Stove_Temp_Cntl
 ///
 /// @details	Controls a damper motor and blower to control the temperature of a rocket stove.
-/// @n
-/// @n
-/// @n @a		Developed with [embedXcode+](http://embedXcode.weebly.com)
 ///
-/// @author		john
 /// @author		john
 /// @date		1/25/17 11:26 AM
 /// @version	<#version#>
 ///
-/// @copyright	(c) john, 2017
-/// @copyright	All rights reserved
+/// @copyright	(c) john, 2017 All rights reserved
 ///
 /// @see		ReadMe.txt for references
 ///
-
-
-///
 /// @file		Rocket_Stove_Temp_Cntl.cpp
-/// @brief		Main sketch
-///
-/// @details	<#details#>
-/// @n @a		Developed with [embedXcode+](http://embedXcode.weebly.com)
 ///
 
 
@@ -45,8 +33,7 @@
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
 #include <SerialCommandParser.h>
-//#include "MAX31855.h"
-#include "TC_Interface_MAX31855.h"
+#include <TC_Interface_MAX31855.h>
 
 #define VERSION_NUMBER_MAJOR 0
 #define VERSION_NUMBER_MINOR 1
@@ -184,6 +171,13 @@ void loop()
   
 }
 
+void runControlSystem()
+{
+  
+  runDamperControl();
+  runBlowerControl();
+}
+
 void checkThermocouples()
 {
   if (millis() > previousTcReadTime + tcReadDelayMillis)
@@ -251,13 +245,6 @@ boolean isHeatOnPos()
   return isHeatOn;
 }
 
-void runControlSystem()
-{
-  
-  runDamperControl();
-  runBlowerControl();
-}
-
 void runBlowerControl()
 {
   if (millis() > prevBlowerCntlSystemTime + BLOWER_CNTL_SYS_DELAY_MILLIS)
@@ -265,16 +252,17 @@ void runBlowerControl()
     prevBlowerCntlSystemTime = millis();
     
     // Read pot and divide by 4
-    uint32_t potVoltage = analogRead(FAN_SPEED_POT_PIN);
-    uint8_t fanSpeed = potVoltage >> 2;
+    uint32_t potVoltage = analogRead(FAN_SPEED_POT_PIN);  // Max value 1023
+    uint8_t fanSpeed = potVoltage >> 2;                   // Max value 255
     
     // Add to moving average filter and calc new average
     
     // Output speed to fan
-    fireBlower->setSpeed(BLOWER_INITIAL_SPEED);
+    fireBlower->setSpeed(fanSpeed);
     fireBlower->run(FORWARD);
-    
-    
+
+    Serial.print("** New Fan Speed is ");
+    Serial.println(fanSpeed);
   }
 }
 
