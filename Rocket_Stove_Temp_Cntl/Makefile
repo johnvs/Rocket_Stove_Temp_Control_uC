@@ -17,6 +17,7 @@
 # Short-listing libraries speeds-up building
 # Typing = 0 takes none (default for application and user)
 # Otherwise, leaving empty considers all (default for local)
+CORE_LIBS_LIST = 0
 
 # List application Arduino/chipKIT/Digispark/Energia/Maple/Microduino/Teensy/Wiring libraries here
 # default = 0 = none
@@ -60,6 +61,7 @@ LOCAL_LIBS_LIST =
 #   OneWire on MPIDE 0023, HardwareSerial may conflict with MarlinSerial
 #
 #EXCLUDE_LIBS = Firmata WiFi Esplora OneWire Robot_Control Robot_Control/utility Robot_Motor
+EXCLUDE_LIBS = .git
 
 
 # Warning options
@@ -88,7 +90,7 @@ WARNING_OPTIONS = 0
 # = 0 or = empty or comment: open serial console
 # = 1: don't open serial console
 #
-NO_SERIAL_CONSOLE =
+NO_SERIAL_CONSOLE = 1
 
 
 # Teensy USB options (default)
