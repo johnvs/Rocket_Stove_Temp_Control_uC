@@ -69,6 +69,17 @@ const uint8_t FIRE_BLOWER_NUM = 0;
 const uint8_t BLOWER_INITIAL_SPEED = 0;
 
 
+enum struct ControlMode
+{
+  Manual    = 0,
+  Automatic = 1
+};
+
+ControlMode damperControlMode;
+ControlMode blowerControlMode;
+uint32_t damperTempDesired;
+
+
 Adafruit_MotorShield motorController(MOTOR_CNTLR_I2C_ADDR);
 Adafruit_StepperMotor *damperMotor;
 Adafruit_DCMotor *fireBlower;
@@ -76,6 +87,9 @@ Adafruit_DCMotor *fireBlower;
 uint32_t startTimeMillis;
 uint32_t previousTcReadTime;
 const uint32_t tcReadDelayMillis = 5000;
+
+uint32_t previousDataXmitTime;
+uint32_t dataXmitRateMillis = 5000;
 
 uint32_t prevControlSystemTime;
 const uint32_t CONTROL_SYSTEM_DELAY_MILLIS = 5000;
@@ -105,18 +119,23 @@ void checkThermocouples();
 void unrecognized();
 void homeDamperMotor();
 void printSystemInfo();
+void setdamperCntlMode();
+void setblowerCntlMode();
+void sendDataPacket();
 
 void setup()
 {
   Serial.begin(9600);
   delay(500);          // Allow serial port to initialize
   
-  Serial.println("Stepper test!");
+//  Serial.println("Stepper test!");
   
   SPI.begin();
   
   waterPotTcInterface.setChipSelectPin(WATER_POT_CHIP_SELECT_PIN, "Water Pot");
   flueTcInterface.setChipSelectPin(FLUE_CHIP_SELECT_PIN, "Flue");
+
+  motorController.begin();  // Begin sheild with the default frequency 1.6KHz
   
   // Setup damper stepper motor
   // Params: Steps per Rev - 200
@@ -129,15 +148,35 @@ void setup()
   damperMotor->setSpeed(INITIAL_SPEED);
   damperMotor->setJogSteps(INITIAL_JOG_STEPS);
   damperMotor->setHomeSensor(HOME_SENSOR_PIN);
-  
+
   // Setup fire blower DC motor
   fireBlower = motorController.getMotor(FIRE_BLOWER_NUM);
   fireBlower->setSpeed(BLOWER_INITIAL_SPEED);             // 0 - 255
   fireBlower->run(RELEASE);
   
-  motorController.begin();  // Begin sheild with the default frequency 1.6KHz
-  
   pinMode(FAN_SPEED_POT_PIN, INPUT);    // Blower motor speed control potentiometer
+  
+  /*
+   Data packet message format
+   
+   a  Pot Temp Faults (0 = No faults, 1 = No connection, 2 = Short to ground, 3 = Short to VCC)
+   b  Pot Temp, Actual (˚F)
+   c  Damper Angle (-1 = motor not homed, 0 - 90 degrees)
+   d  Damper Control Mode (0 = Manual, 1 = Auto)
+   e  Motor is Homed (0 = No, 1 = Yes)
+   f  Motor position (-1 = motor not homed, 0 - 199)
+   g  Flue Temp Faults (0 = No faults, 1 = No connection, 2 = Short to ground, 3 = Short to VCC)
+   h  Flue Temp (˚F)
+   i  Fan speed, Actual (RPM)
+   j  Blower Control Mode (0 = Manual, 1 = Auto)
+   k  Blower Algorithm Command Speed (-1 = N/A, 0 - 100%)
+
+     example data packet:
+       '{a:<data>, b:<data>, c:<data>, d:<data>, e:<data>, f:<data>, g:<data>, h:<data>, i:<data>, j:<data>, k:<data>}'
+   
+   */
+
+  //  Serial.println("Set up Commands");
   
   // Setup callbacks for SerialCommandParser commands
   serialCommandParser.addCommand("c", runControlSystem);
@@ -152,8 +191,14 @@ void setup()
   serialCommandParser.addCommand("z", setZeroPosition);   // Sets the current damper motor position as zero
   serialCommandParser.addCommand("e", setSpeed);          // was setspd
   serialCommandParser.addCommand("i", printSystemInfo);   // was setspd
+
+//  serialCommandParser.addCommand("??", setUpdateRate);    //
+  serialCommandParser.addCommand("a", setdamperCntlMode); //
+  serialCommandParser.addCommand("b", setblowerCntlMode); //
+
   serialCommandParser.addDefaultHandler(unrecognized);    // Handler for command that isn't matched  (says "What?")
-  Serial.println("Ready");
+  
+//  Serial.println("Ready");
   
   previousTcReadTime = millis();
   isHeatOn = false;
@@ -166,9 +211,9 @@ void loop()
   
   // temperatureControlSystem.runTCS();
   
-  runControlSystem();
-  checkThermocouples();
-  
+//  runControlSystem();
+//  checkThermocouples();
+  sendDataPacket();
 }
 
 void runControlSystem()
@@ -178,20 +223,58 @@ void runControlSystem()
   runBlowerControl();
 }
 
+void sendDataPacket()
+{
+  if (millis() > previousDataXmitTime + dataXmitRateMillis)
+  {
+    previousDataXmitTime = millis();
+    
+//    Serial.println("***** SendDataPacket *****");
+    
+    waterPotTcInterface.updateIf();
+    flueTcInterface.updateIf();
+
+    int damperTcFaults = waterPotTcInterface.getFaults();
+    int flueTcFaults = flueTcInterface.getFaults();
+   
+    double damperTcTemp = waterPotTcInterface.getTcTempFahrenheit();
+    double flueTcTemp = flueTcInterface.getTcTempFahrenheit();
+
+    Serial.print("{a:");
+    Serial.print(damperTcFaults);
+    Serial.print(", b:");
+    Serial.print(damperTcTemp);
+    Serial.print(", g:");
+    Serial.print(flueTcFaults);
+    Serial.print(", h:");
+    Serial.print(flueTcTemp);
+    Serial.println("}");
+    
+  }
+}
+
+void setdamperCntlMode() {
+  
+}
+
+void setblowerCntlMode() {
+  
+}
+
 void checkThermocouples()
 {
   if (millis() > previousTcReadTime + tcReadDelayMillis)
   {
     previousTcReadTime = millis();
     
-    Serial.println("");
-    Serial.println("** Updating TCs ******************");
+//    Serial.println("");
+//    Serial.println("** Updating TCs ******************");
     
     waterPotTcInterface.updateIf();
-    //    flueTcInterface.updateIf();
+    flueTcInterface.updateIf();
     
-    waterPotTcInterface.displayIf();
-    //    flueTcInterface.displayIf();
+//    waterPotTcInterface.displayIf();
+//    flueTcInterface.displayIf();
   }
 }
 
