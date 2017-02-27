@@ -240,13 +240,13 @@ void sendDataPacket()
     double damperTcTemp = waterPotTcInterface.getTcTempFahrenheit();
     double flueTcTemp = flueTcInterface.getTcTempFahrenheit();
 
-    Serial.print("{a:");
+    Serial.print("{\"a\":");
     Serial.print(damperTcFaults);
-    Serial.print(", b:");
+    Serial.print(", \"b\":");
     Serial.print(damperTcTemp);
-    Serial.print(", g:");
+    Serial.print(", \"g\":");
     Serial.print(flueTcFaults);
-    Serial.print(", h:");
+    Serial.print(", \"h\":");
     Serial.print(flueTcTemp);
     Serial.println("}");
     
