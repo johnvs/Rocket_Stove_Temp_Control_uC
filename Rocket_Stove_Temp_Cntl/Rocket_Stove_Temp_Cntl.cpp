@@ -98,9 +98,6 @@ boolean isHeatOn;
 uint32_t prevBlowerCntlSystemTime;
 const uint32_t BLOWER_CNTL_SYS_DELAY_MILLIS = 500;
 
-//uint8_t damperControlMode;
-//uint8_t blowerControlMode;
-
 int32_t potTempSetPoint    = 75;
 int32_t potTempSetPointMin = potTempSetPoint - 3;
 
@@ -119,7 +116,8 @@ void setJogSteps();
 void jogCW();
 void jogCCW();
 void setZeroPosition();
-void setSpeed();
+void setDamperSpeed();
+void setBlowerSpeed();
 void runControlSystem();
 void runDamperControl();
 void runBlowerControl();
@@ -127,10 +125,11 @@ void checkThermocouples();
 void unrecognized();
 void homeDamperMotor();
 void printSystemInfo();
-void setdamperCntlMode();
-void setblowerCntlMode();
+void setDamperCntlMode();
+void setBlowerCntlMode();
 void sendDataPacket();
 void setPotTemp();
+void setUpdateRate();
 
 uint8_t fetchArgs(uint8_t numArgs);
 
@@ -201,12 +200,12 @@ void setup()
   serialCommandParser.addCommand("+", jogCW);             //
   serialCommandParser.addCommand("-", jogCCW);            //
   serialCommandParser.addCommand("z", setZeroPosition);   // Sets the current damper motor position as zero
-  serialCommandParser.addCommand("e", setSpeed);          // was setspd
-  serialCommandParser.addCommand("i", printSystemInfo);   // was setspd
-
-//  serialCommandParser.addCommand("??", setUpdateRate);    //
-  serialCommandParser.addCommand("a", setdamperCntlMode); //
-  serialCommandParser.addCommand("b", setblowerCntlMode); //
+  serialCommandParser.addCommand("e", setDamperSpeed);    //
+  serialCommandParser.addCommand("f", setBlowerSpeed);    //
+  serialCommandParser.addCommand("i", printSystemInfo);   //
+  serialCommandParser.addCommand("q", setUpdateRate);     //
+  serialCommandParser.addCommand("a", setDamperCntlMode); //
+  serialCommandParser.addCommand("b", setBlowerCntlMode); //
   serialCommandParser.addCommand("m", setPotTemp);        //
 
   serialCommandParser.addDefaultHandler(unrecognized);    // Handler for command that isn't matched  (says "What?")
@@ -306,12 +305,10 @@ void sendDataPacket()
   }
 }
 
-void setdamperCntlMode() {
-  
+void setDamperCntlMode() {
 }
 
-void setblowerCntlMode() {
-  
+void setBlowerCntlMode() {
 }
 
 void checkThermocouples()
@@ -555,6 +552,11 @@ void moveToAngleDegrees()
     
     if ((newAngle >= 0) && (newAngle < 360))
     {
+      Serial.print("  moveToAngleDegrees: current position is ");
+      Serial.println(damperMotor->getPositionSteps());
+
+      Serial.println("  moveToAngleDegrees: calling moveToAngleDegrees");
+      
       damperMotor->moveToAngleDegrees(newAngle);
     } else
     {
@@ -613,7 +615,7 @@ void printSystemInfo()
   damperMotor->printMotorInfo();
 }
 
-void setSpeed()
+void setDamperSpeed()
 {
   if (fetchArgs(1))
   {
@@ -621,7 +623,7 @@ void setSpeed()
     
     if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
     {
-      Serial.print("Speed is ");
+      Serial.print("Damper speed set to ");
       Serial.println(speed);
     }
     
@@ -629,6 +631,59 @@ void setSpeed()
     if ( (speed >= SPEED_MIN) && (speed <= SPEED_MAX) )
     {
       damperMotor->setSpeed(speed);
+    } else
+    {
+      Serial.println("Argument out of range");
+    }
+  } else
+  {
+    Serial.println("Missing setSpeed argument");
+  }
+}
+
+void setBlowerSpeed()
+{
+  if (fetchArgs(1))
+  {
+    uint32_t speed = fetchedArgs[0];
+    
+    if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
+    {
+      Serial.print("Blower speed set to ");
+      Serial.print(speed);
+      Serial.println("%");
+    }
+    
+    // TODO - replace literal ints with enums
+//    if (speed <= BLOWER_SPEED_MAX)
+    if (speed <= 100)
+    {
+      fireBlower->setSpeedPercentage(speed);
+      fireBlower->run(FORWARD);
+    } else
+    {
+      Serial.println("Argument out of range");
+    }
+  } else
+  {
+    Serial.println("Missing setSpeed argument");
+  }
+}
+
+void setUpdateRate() {
+  if (fetchArgs(1))
+  {
+    uint8_t rateSeconds = fetchedArgs[0];
+    
+    if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
+    {
+      Serial.print("Data update rate set to ");
+      Serial.println(rateSeconds);
+    }
+    
+    if (rateSeconds <= 30)
+    {
+      dataXmitRateMillis = rateSeconds * 1000;
     } else
     {
       Serial.println("Argument out of range");
@@ -651,7 +706,10 @@ uint8_t fetchArgs(uint8_t numArgs)
   uint8_t continueFetching = numArgs;
   size_t fetchedArgsIndex = 0;
   
-  Serial.println("Fetching args");
+  if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
+  {
+    Serial.println("Fetching args");
+  }
   
   while (continueFetching)
   {
