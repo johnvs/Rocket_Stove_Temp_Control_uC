@@ -69,7 +69,7 @@ const uint8_t FIRE_BLOWER_NUM = 0;
 const uint8_t BLOWER_INITIAL_SPEED = 0;
 
 
-enum struct ControlMode
+enum struct ControlMode : uint8_t
 {
   Manual    = 0,
   Automatic = 1
@@ -98,6 +98,13 @@ boolean isHeatOn;
 uint32_t prevBlowerCntlSystemTime;
 const uint32_t BLOWER_CNTL_SYS_DELAY_MILLIS = 500;
 
+//uint8_t damperControlMode;
+//uint8_t blowerControlMode;
+
+int32_t potTempSetPoint    = 75;
+int32_t potTempSetPointMin = potTempSetPoint - 3;
+
+
 SerialCommandParser serialCommandParser;   // The demo SerialCommandParser object
 
 int32_t fetchedArgs[MAX_NUM_ARGS];        // Used to store fetched args
@@ -107,6 +114,7 @@ void setMoveStyle();
 void moveNumSteps();
 void moveNumDegrees();
 void moveToPosition();
+void moveToAngleDegrees();
 void setJogSteps();
 void jogCW();
 void jogCCW();
@@ -122,6 +130,9 @@ void printSystemInfo();
 void setdamperCntlMode();
 void setblowerCntlMode();
 void sendDataPacket();
+void setPotTemp();
+
+uint8_t fetchArgs(uint8_t numArgs);
 
 void setup()
 {
@@ -184,6 +195,7 @@ void setup()
   serialCommandParser.addCommand("s", moveNumSteps);      // was mvstep
   serialCommandParser.addCommand("d", moveNumDegrees);    // was mvdeg
   serialCommandParser.addCommand("p", moveToPosition);    // was mvpos
+  serialCommandParser.addCommand("n", moveToAngleDegrees);  //
   serialCommandParser.addCommand("h", homeDamperMotor);   //
   serialCommandParser.addCommand("j", setJogSteps);       // was setjogsteps
   serialCommandParser.addCommand("+", jogCW);             //
@@ -195,6 +207,7 @@ void setup()
 //  serialCommandParser.addCommand("??", setUpdateRate);    //
   serialCommandParser.addCommand("a", setdamperCntlMode); //
   serialCommandParser.addCommand("b", setblowerCntlMode); //
+  serialCommandParser.addCommand("m", setPotTemp);        //
 
   serialCommandParser.addDefaultHandler(unrecognized);    // Handler for command that isn't matched  (says "What?")
   
@@ -202,6 +215,10 @@ void setup()
   
   previousTcReadTime = millis();
   isHeatOn = false;
+  
+  damperControlMode = ControlMode::Manual;
+  blowerControlMode = ControlMode::Manual;
+  
 }
 
 void loop()
@@ -240,14 +257,50 @@ void sendDataPacket()
     double damperTcTemp = waterPotTcInterface.getTcTempFahrenheit();
     double flueTcTemp = flueTcInterface.getTcTempFahrenheit();
 
+    int8_t damperAngle = -1;
+    uint8_t damperPos = -1;
+    uint8_t isDamperHomed = damperMotor->isHomed();
+    if (isDamperHomed) {
+      damperAngle = damperMotor->getPositionDegrees();
+      damperPos = damperMotor->getPositionSteps();
+    }
+    
+    int32_t blowerSpeedActual = -1;
+    int32_t blowerCommandSpeed = -1;
+    
     Serial.print("{\"a\":");
     Serial.print(damperTcFaults);
+
     Serial.print(", \"b\":");
     Serial.print(damperTcTemp);
+    
+    Serial.print(", \"c\":");
+    Serial.print(damperAngle);
+    
+    Serial.print(", \"d\":");
+    Serial.print(static_cast<uint8_t>(damperControlMode));
+    
+    Serial.print(", \"e\":");
+    Serial.print(isDamperHomed);
+    
+    Serial.print(", \"f\":");
+    Serial.print(damperPos);
+    
     Serial.print(", \"g\":");
     Serial.print(flueTcFaults);
+    
     Serial.print(", \"h\":");
     Serial.print(flueTcTemp);
+    
+    Serial.print(", \"i\":");
+    Serial.print(blowerSpeedActual);
+    
+    Serial.print(", \"j\":");
+    Serial.print(static_cast<uint8_t>(blowerControlMode));
+    
+    Serial.print(", \"k\":");
+    Serial.print(blowerCommandSpeed);
+    
     Serial.println("}");
     
   }
@@ -278,45 +331,28 @@ void checkThermocouples()
   }
 }
 
-uint8_t fetchArgs(uint8_t numArgs)
-{
-  char *arg;
-  uint8_t continueFetching = numArgs;
-  size_t fetchedArgsIndex = 0;
-  
-  Serial.println("Fetching args");
-  
-  while (continueFetching)
+void setPotTemp() {
+  if (fetchArgs(1))
   {
-    arg = serialCommandParser.next();
-    if (arg != NULL)
+    uint32_t setPoint = fetchedArgs[0];
+    
+    if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
     {
-      if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
-      {
-        Serial.print("Argument as ascii is ");
-        Serial.println(arg);
-      }
-      
-      fetchedArgs[fetchedArgsIndex] = atoi(arg);  // Converts a char string to an integer
-      fetchedArgsIndex++;
-      continueFetching--;
-      
-      if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
-      {
-        Serial.print("Argument ");
-        Serial.print(fetchedArgsIndex);
-        Serial.print(" is ");
-        Serial.println(fetchedArgs[fetchedArgsIndex - 1]);
-      }
+      Serial.print("New pot temp set point is ");
+      Serial.println(setPoint);
+    }
+    
+    if ( (setPoint >= 0) && (setPoint <= 250) )
+    {
+      potTempSetPoint = setPoint;
     } else
     {
-      // We were looking for a good arg and got null
-      Serial.println("Expecting argument, got NULL");
-      break;
+      Serial.println("Argument out of range");
     }
+  } else
+  {
+    Serial.println("Missing setPotTemp argument");
   }
-  
-  return !continueFetching;
 }
 
 boolean isHeatOnPos()
@@ -351,8 +387,8 @@ void runBlowerControl()
 
 void runDamperControl()
 {
-  int32_t setPoint    = 75;
-  int32_t setPointMin = 72;
+//  int32_t setPoint    = 75;
+//  int32_t setPointMin = 72;
   
   if (millis() > prevControlSystemTime + CONTROL_SYSTEM_DELAY_MILLIS)
   {
@@ -375,7 +411,7 @@ void runDamperControl()
     Serial.println(temp);
     
     //
-    if (temp < setPointMin)
+    if (temp < potTempSetPointMin)
     {
       if (!isHeatOnPos())
       {
@@ -386,7 +422,7 @@ void runDamperControl()
       }
     } else
     {
-      if (temp > setPoint)
+      if (temp > potTempSetPoint)
       {
         if (isHeatOnPos())
         {
@@ -509,6 +545,27 @@ void moveToPosition()
   }
 }
 
+void moveToAngleDegrees()
+{
+  if (fetchArgs(1))
+  {
+    uint32_t newAngle = fetchedArgs[0];
+    Serial.print("New angle is ");
+    Serial.println(newAngle);
+    
+    if ((newAngle >= 0) && (newAngle < 360))
+    {
+      damperMotor->moveToAngleDegrees(newAngle);
+    } else
+    {
+      Serial.println("Argument out of range");
+    }
+  } else
+  {
+    Serial.println("Missing moveToAngleDegrees argument");
+  }
+}
+
 void setJogSteps()
 {
   if (fetchArgs(1))
@@ -586,5 +643,46 @@ void setSpeed()
 void unrecognized()
 {
   Serial.println("Unreconized command"); 
+}
+
+uint8_t fetchArgs(uint8_t numArgs)
+{
+  char *arg;
+  uint8_t continueFetching = numArgs;
+  size_t fetchedArgsIndex = 0;
+  
+  Serial.println("Fetching args");
+  
+  while (continueFetching)
+  {
+    arg = serialCommandParser.next();
+    if (arg != NULL)
+    {
+      if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
+      {
+        Serial.print("Argument as ascii is ");
+        Serial.println(arg);
+      }
+      
+      fetchedArgs[fetchedArgsIndex] = atoi(arg);  // Converts a char string to an integer
+      fetchedArgsIndex++;
+      continueFetching--;
+      
+      if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
+      {
+        Serial.print("Argument ");
+        Serial.print(fetchedArgsIndex);
+        Serial.print(" is ");
+        Serial.println(fetchedArgs[fetchedArgsIndex - 1]);
+      }
+    } else
+    {
+      // We were looking for a good arg and got null
+      Serial.println("Expecting argument, got NULL");
+      break;
+    }
+  }
+  
+  return !continueFetching;
 }
 
