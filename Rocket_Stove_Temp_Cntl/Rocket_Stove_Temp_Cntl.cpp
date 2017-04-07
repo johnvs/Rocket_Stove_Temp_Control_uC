@@ -67,18 +67,27 @@ const uint32_t INITIAL_JOG_STEPS = 10;
 
 const uint8_t FIRE_BLOWER_NUM = 0;
 const uint8_t BLOWER_INITIAL_SPEED = 0;
+const uint8_t BLOWER_SPEED_PERCENT_MAX = 100;
 
-
-enum struct ControlMode : uint8_t
+enum struct DamperControlMode : uint8_t
 {
   Manual    = 0,
   Automatic = 1
 };
 
-ControlMode damperControlMode;
-ControlMode blowerControlMode;
+enum struct BlowerControlMode : uint8_t
+{
+  ManualPot = 0,
+  ManualUI  = 1,
+  Automatic = 2
+};
+
+DamperControlMode damperControlMode;
+BlowerControlMode blowerControlMode;
 uint32_t damperTempDesired;
 
+uint8_t blowerSpeedUI = 0;
+uint8_t previousBlowerSpeed;
 
 Adafruit_MotorShield motorController(MOTOR_CNTLR_I2C_ADDR);
 Adafruit_StepperMotor *damperMotor;
@@ -98,8 +107,9 @@ boolean isHeatOn;
 uint32_t prevBlowerCntlSystemTime;
 const uint32_t BLOWER_CNTL_SYS_DELAY_MILLIS = 500;
 
-int32_t potTempSetPoint    = 75;
-int32_t potTempSetPointMin = potTempSetPoint - 3;
+int32_t potTempSetPoint = 0;
+const int32_t POT_TEMP_SET_POINT_OFFSET = 3;
+//int32_t potTempSetPointMin = potTempSetPoint - 3;
 
 
 SerialCommandParser serialCommandParser;   // The demo SerialCommandParser object
@@ -118,6 +128,7 @@ void jogCCW();
 void setZeroPosition();
 void setDamperSpeed();
 void setBlowerSpeed();
+void setBlowerSpeedAsPercent(uint8_t speed);
 void runControlSystem();
 void runDamperControl();
 void runBlowerControl();
@@ -215,8 +226,8 @@ void setup()
   previousTcReadTime = millis();
   isHeatOn = false;
   
-  damperControlMode = ControlMode::Manual;
-  blowerControlMode = ControlMode::Manual;
+  damperControlMode = DamperControlMode::Manual;
+  blowerControlMode = BlowerControlMode::ManualPot;
   
 }
 
@@ -224,17 +235,14 @@ void loop()
 {
   // Receive and process commands from serial port
   serialCommandParser.readSerial();     // We don't do much, just process serial commands
-  
-  // temperatureControlSystem.runTCS();
-  
-//  runControlSystem();
-//  checkThermocouples();
+
+  runControlSystem();
+
   sendDataPacket();
 }
 
 void runControlSystem()
 {
-  
   runDamperControl();
   runBlowerControl();
 }
@@ -259,7 +267,8 @@ void sendDataPacket()
     int8_t damperAngle = -1;
     uint8_t damperPos = -1;
     uint8_t isDamperHomed = damperMotor->isHomed();
-    if (isDamperHomed) {
+    if (isDamperHomed)
+    {
       damperAngle = damperMotor->getPositionDegrees();
       damperPos = damperMotor->getPositionSteps();
     }
@@ -306,9 +315,61 @@ void sendDataPacket()
 }
 
 void setDamperCntlMode() {
+  if (fetchArgs(1))
+  {
+    uint8_t cntlMode = fetchedArgs[0];
+    switch (cntlMode) {
+      case 0:
+        damperControlMode = DamperControlMode::Manual;
+        break;
+        
+      case 1:
+        damperControlMode = DamperControlMode::Automatic;
+        // If the damper motor not homed, home it now.
+        if (!damperMotor->isHomed())
+        {
+          damperMotor->homeMotor();
+        }
+        break;
+        
+      default:
+        Serial.println("damperCntlMode Argument out of range");
+        break;
+    }
+  } else
+  {
+    Serial.println("Missing damperCntlMode argument");
+  }
 }
 
-void setBlowerCntlMode() {
+void setBlowerCntlMode()
+{
+  if (fetchArgs(1))
+  {
+    uint8_t cntlMode = fetchedArgs[0];
+    switch (cntlMode) {
+      case 0:
+        blowerControlMode = BlowerControlMode::ManualPot;
+        break;
+        
+      case 1:
+        blowerControlMode = BlowerControlMode::ManualUI;
+        // Set the blower speed to the UI speed
+        setBlowerSpeedAsPercent(blowerSpeedUI);
+        break;
+        
+      case 2:
+        blowerControlMode = BlowerControlMode::Automatic;
+        break;
+        
+      default:
+        Serial.println("blowerControlMode Argument out of range");
+        break;
+    }
+  } else
+  {
+    Serial.println("Missing blowerControlMode argument");
+  }
 }
 
 void checkThermocouples()
@@ -328,7 +389,8 @@ void checkThermocouples()
   }
 }
 
-void setPotTemp() {
+void setPotTemp()
+{
   if (fetchArgs(1))
   {
     uint32_t setPoint = fetchedArgs[0];
@@ -367,18 +429,30 @@ void runBlowerControl()
   {
     prevBlowerCntlSystemTime = millis();
     
-    // Read pot and divide by 4
-    uint32_t potVoltage = analogRead(FAN_SPEED_POT_PIN);  // Max value 1023
-    uint8_t fanSpeed = potVoltage >> 2;                   // Max value 255
-    
-    // Add to moving average filter and calc new average
-    
-    // Output speed to fan
-    fireBlower->setSpeed(fanSpeed);
-    fireBlower->run(FORWARD);
+    if (blowerControlMode == BlowerControlMode::ManualPot)
+    {
+      uint32_t potVoltage = analogRead(FAN_SPEED_POT_PIN);  // Read pot, max value is 1023
+      uint8_t fanSpeed = (potVoltage * 100) >> 10;          // Convert to percentage
+      
+      // Add to moving average filter and calc new average
+      
+      // Set speed only if integer value is different from last time
+      if (fanSpeed != previousBlowerSpeed)
+      {
+        previousBlowerSpeed = fanSpeed;
 
-    Serial.print("** New Fan Speed is ");
-    Serial.println(fanSpeed);
+        // Output speed to fan
+        setBlowerSpeedAsPercent(fanSpeed);
+        //      fireBlower->setSpeed(fanSpeed);
+        //      fireBlower->run(FORWARD);
+        
+        Serial.print("** New Fan Speed is ");
+        Serial.println(fanSpeed);
+      }
+    }
+    else if (blowerControlMode == BlowerControlMode::Automatic)
+    {
+    }
   }
 }
 
@@ -391,46 +465,49 @@ void runDamperControl()
   {
     prevControlSystemTime = millis();
     
-    Serial.println("");
-    Serial.println("** Updating Control System ******************");
-    Serial.print("  Heat is ");
-    if (isHeatOn)
+    if (damperControlMode == DamperControlMode::Manual)
     {
-      Serial.println("ON");
-    } else
-    {
-      Serial.println("OFF");
     }
-    
-    // Read TC
-    int32_t temp = int32_t(waterPotTcInterface.getTcTempFahrenheit());
-    Serial.print("  Temp (F) = ");
-    Serial.println(temp);
-    
-    //
-    if (temp < potTempSetPointMin)
+    else if (damperControlMode == DamperControlMode::Automatic)
     {
-      if (!isHeatOnPos())
+      Serial.println("");
+      Serial.println("** Updating Damper Control System ******************");
+      Serial.print("  Heat is ");
+      if (isHeatOn)
       {
-        // turn on heat
-        damperMotor->moveNumDegrees(90);
-        isHeatOn = true;
-        Serial.println("Turning on heat.");
+        Serial.println("ON");
+      } else
+      {
+        Serial.println("OFF");
       }
-    } else
-    {
-      if (temp > potTempSetPoint)
+      
+      // Read TC
+      int32_t temp = int32_t(waterPotTcInterface.getTcTempFahrenheit());
+      Serial.print("  Temp (F) = ");
+      Serial.println(temp);
+      
+      // Check pot temp
+      if (temp < (potTempSetPoint - POT_TEMP_SET_POINT_OFFSET))
+      {
+        if (!isHeatOnPos())
+        {
+          // Turn heat on if temp is below set point and heat is off
+          damperMotor->moveNumDegrees(90);
+          isHeatOn = true;
+          Serial.println("Turning on heat.");
+        }
+      } else if (temp > potTempSetPoint)
       {
         if (isHeatOnPos())
         {
-          // turn off heat
+          // Turn heat off if temp is above set point and heat is on
           damperMotor->moveNumDegrees(-90);
           isHeatOn = false;
           Serial.println("Turning off heat.");
         }
       }
-      
     }
+    
   }
 }
 
@@ -654,12 +731,10 @@ void setBlowerSpeed()
       Serial.println("%");
     }
     
-    // TODO - replace literal ints with enums
-//    if (speed <= BLOWER_SPEED_MAX)
-    if (speed <= 100)
+    if (speed <= BLOWER_SPEED_PERCENT_MAX)
     {
-      fireBlower->setSpeedPercentage(speed);
-      fireBlower->run(FORWARD);
+      blowerSpeedUI = speed;
+      setBlowerSpeedAsPercent(uint8_t(speed));
     } else
     {
       Serial.println("Argument out of range");
@@ -670,7 +745,14 @@ void setBlowerSpeed()
   }
 }
 
-void setUpdateRate() {
+void setBlowerSpeedAsPercent(uint8_t speed)
+{
+  fireBlower->setSpeedPercentage(speed);
+  fireBlower->run(FORWARD);
+}
+
+void setUpdateRate()
+{
   if (fetchArgs(1))
   {
     uint8_t rateSeconds = fetchedArgs[0];
