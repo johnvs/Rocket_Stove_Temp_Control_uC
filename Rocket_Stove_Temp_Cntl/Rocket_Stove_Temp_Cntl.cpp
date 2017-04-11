@@ -101,7 +101,7 @@ uint32_t previousDataXmitTime;
 uint32_t dataXmitRateMillis = 5000;
 
 uint32_t prevControlSystemTime;
-const uint32_t CONTROL_SYSTEM_DELAY_MILLIS = 5000;
+const uint32_t CONTROL_SYSTEM_DELAY_MILLIS = 5500;
 boolean isHeatOn;
 
 uint32_t prevBlowerCntlSystemTime;
@@ -191,9 +191,11 @@ void setup()
    i  Fan speed, Actual (RPM)
    j  Blower Control Mode (0 = Manual, 1 = Auto)
    k  Blower Algorithm Command Speed (-1 = N/A, 0 - 100%)
+   l  Blower UI speed, Set (%)
+   m  Pot Temp, Desired (˚F)
 
      example data packet:
-       '{a:<data>, b:<data>, c:<data>, d:<data>, e:<data>, f:<data>, g:<data>, h:<data>, i:<data>, j:<data>, k:<data>}'
+       '{a:<data>, b:<data>, c:<data>, d:<data>, e:<data>, f:<data>, g:<data>, h:<data>, i:<data>, j:<data>, k:<data>, l:<data>, m:<data>}'
    
    */
 
@@ -308,6 +310,12 @@ void sendDataPacket()
     
     Serial.print(", \"k\":");
     Serial.print(blowerCommandSpeed);
+    
+    Serial.print(", \"l\":");
+    Serial.print(blowerSpeedUI);
+    
+    Serial.print(", \"m\":");
+    Serial.print(potTempSetPoint);
     
     Serial.println("}");
     
@@ -506,6 +514,7 @@ void runDamperControl()
           Serial.println("Turning off heat.");
         }
       }
+      Serial.println();
     }
     
   }
