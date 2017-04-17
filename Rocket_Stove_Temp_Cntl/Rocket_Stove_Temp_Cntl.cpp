@@ -71,23 +71,30 @@ const uint8_t BLOWER_SPEED_PERCENT_MAX = 100;
 
 enum struct DamperControlMode : uint8_t
 {
+  Invalid   = 255,
   Manual    = 0,
   Automatic = 1
 };
 
 enum struct BlowerControlMode : uint8_t
 {
+  Invalid   = 255,
   ManualPot = 0,
   ManualUI  = 1,
   Automatic = 2
 };
 
-DamperControlMode damperControlMode;
-BlowerControlMode blowerControlMode;
+DamperControlMode damperControlMode;  // , prevDamperCntlMode;
+BlowerControlMode blowerControlMode;  // , prevBlowerCntlMode;
+//bool isNewDamperCntlMode = true;
+//bool isNewBlowerCntlMode = true;
+
 uint32_t damperTempDesired;
 
 uint8_t blowerSpeedUI = 0;
-uint8_t previousBlowerSpeed;
+uint8_t previousBlowerSpeedUI;
+uint8_t blowerSpeedPot;
+uint8_t currentBlowerSpdPercent;  // Used to store blower speed irrespective of control mode, to send to UI
 
 Adafruit_MotorShield motorController(MOTOR_CNTLR_I2C_ADDR);
 Adafruit_StepperMotor *damperMotor;
@@ -102,7 +109,7 @@ uint32_t dataXmitRateMillis = 5000;
 
 uint32_t prevControlSystemTime;
 const uint32_t CONTROL_SYSTEM_DELAY_MILLIS = 5500;
-boolean isHeatOn;
+boolean _isHeatOn;
 
 uint32_t prevBlowerCntlSystemTime;
 const uint32_t BLOWER_CNTL_SYS_DELAY_MILLIS = 500;
@@ -178,7 +185,7 @@ void setup()
   pinMode(FAN_SPEED_POT_PIN, INPUT);    // Blower motor speed control potentiometer
   
   /*
-   Data packet message format
+   Data packet message format - Transmitted by microcontroller
    
    a  Pot Temp Faults (0 = No faults, 1 = No connection, 2 = Short to ground, 3 = Short to VCC)
    b  Pot Temp, Actual (˚F)
@@ -226,17 +233,22 @@ void setup()
 //  Serial.println("Ready");
   
   previousTcReadTime = millis();
-  isHeatOn = false;
+  _isHeatOn = false;
   
   damperControlMode = DamperControlMode::Manual;
+//  prevDamperCntlMode = DamperControlMode::Invalid;
+
   blowerControlMode = BlowerControlMode::ManualPot;
+//  prevBlowerCntlMode = BlowerControlMode::Invalid;
   
+  homeDamperMotor();
+ 
 }
 
 void loop()
 {
   // Receive and process commands from serial port
-  serialCommandParser.readSerial();     // We don't do much, just process serial commands
+  serialCommandParser.readSerial();
 
   runControlSystem();
 
@@ -275,7 +287,6 @@ void sendDataPacket()
       damperPos = damperMotor->getPositionSteps();
     }
     
-    int32_t blowerSpeedActual = -1;
     int32_t blowerCommandSpeed = -1;
     
     Serial.print("{\"a\":");
@@ -303,7 +314,7 @@ void sendDataPacket()
     Serial.print(flueTcTemp);
     
     Serial.print(", \"i\":");
-    Serial.print(blowerSpeedActual);
+    Serial.print(currentBlowerSpdPercent);
     
     Serial.print(", \"j\":");
     Serial.print(static_cast<uint8_t>(blowerControlMode));
@@ -325,7 +336,11 @@ void sendDataPacket()
 void setDamperCntlMode() {
   if (fetchArgs(1))
   {
+    Serial.println(">>> setDamperCntlMode");
+
     uint8_t cntlMode = fetchedArgs[0];
+//    DamperControlMode newCntlMode = DamperControlMode::Invalid;
+    
     switch (cntlMode) {
       case 0:
         damperControlMode = DamperControlMode::Manual;
@@ -344,6 +359,11 @@ void setDamperCntlMode() {
         Serial.println("damperCntlMode Argument out of range");
         break;
     }
+//    if ( (newCntlMode != DamperControlMode::Invalid) && (newCntlMode != prevDamperCntlMode) ) {
+//      prevDamperCntlMode = damperControlMode;
+//      damperControlMode = newCntlMode;
+//      isNewDamperCntlMode = true;
+//    }
   } else
   {
     Serial.println("Missing damperCntlMode argument");
@@ -354,26 +374,41 @@ void setBlowerCntlMode()
 {
   if (fetchArgs(1))
   {
+    Serial.println(">>> setBlowerCntlMode");
+
     uint8_t cntlMode = fetchedArgs[0];
+//    BlowerControlMode newCntlMode = BlowerControlMode::Invalid;
+
     switch (cntlMode) {
       case 0:
         blowerControlMode = BlowerControlMode::ManualPot;
+        setBlowerSpeedAsPercent(blowerSpeedPot);
+        Serial.println("** New blower control mode: manualPot");
         break;
         
       case 1:
         blowerControlMode = BlowerControlMode::ManualUI;
         // Set the blower speed to the UI speed
+        Serial.print("** New blower control mode: Manual UI. Currrent UI speed is: ");
+        Serial.println(blowerSpeedUI);
         setBlowerSpeedAsPercent(blowerSpeedUI);
+//        previousBlowerSpeedUI = blowerSpeedUI;
         break;
         
       case 2:
         blowerControlMode = BlowerControlMode::Automatic;
+        Serial.println("** New blower control mode: auto");
         break;
         
       default:
-        Serial.println("blowerControlMode Argument out of range");
+        Serial.println("** blowerControlMode Argument out of range");
         break;
     }
+//    if ( (newCntlMode != BlowerControlMode::Invalid) && (newCntlMode != prevBlowerCntlMode) ) {
+//      prevBlowerCntlMode = blowerControlMode;
+//      blowerControlMode = newCntlMode;
+//      isNewBlowerCntlMode = true;
+//    }
   } else
   {
     Serial.println("Missing blowerControlMode argument");
@@ -401,6 +436,8 @@ void setPotTemp()
 {
   if (fetchArgs(1))
   {
+    Serial.println(">>> setPotTemp");
+
     uint32_t setPoint = fetchedArgs[0];
     
     if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
@@ -422,13 +459,13 @@ void setPotTemp()
   }
 }
 
-boolean isHeatOnPos()
+boolean isHeatOn()
 {
   //  if (damperMotor->getDegrees() == heatOnDegrees)
   //  {
   //    return true;
   //  }
-  return isHeatOn;
+  return _isHeatOn;
 }
 
 void runBlowerControl()
@@ -445,9 +482,11 @@ void runBlowerControl()
       // Add to moving average filter and calc new average
       
       // Set speed only if integer value is different from last time
-      if (fanSpeed != previousBlowerSpeed)
+//      if ( (fanSpeed != previousBlowerSpeedPot) || (isNewBlowerCntlMode) )
+      if ( fanSpeed != blowerSpeedPot )
       {
-        previousBlowerSpeed = fanSpeed;
+        blowerSpeedPot = fanSpeed;
+//        isNewBlowerCntlMode = false;
 
         // Output speed to fan
         setBlowerSpeedAsPercent(fanSpeed);
@@ -457,6 +496,15 @@ void runBlowerControl()
         Serial.print("** New Fan Speed is ");
         Serial.println(fanSpeed);
       }
+    }
+    else if (blowerControlMode == BlowerControlMode::ManualUI)
+    {
+      // Only do this the first time after a change to ManualUI control mode
+//      if (blowerControlMode != prevBlowerCntlMode)
+//      {
+//        prevBlowerCntlMode = blowerControlMode;
+//        setBlowerSpeedAsPercent(uint8_t(blowerSpeedUI));
+//      }
     }
     else if (blowerControlMode == BlowerControlMode::Automatic)
     {
@@ -481,7 +529,7 @@ void runDamperControl()
       Serial.println("");
       Serial.println("** Updating Damper Control System ******************");
       Serial.print("  Heat is ");
-      if (isHeatOn)
+      if (_isHeatOn)
       {
         Serial.println("ON");
       } else
@@ -497,20 +545,20 @@ void runDamperControl()
       // Check pot temp
       if (temp < (potTempSetPoint - POT_TEMP_SET_POINT_OFFSET))
       {
-        if (!isHeatOnPos())
+        if (!isHeatOn())
         {
           // Turn heat on if temp is below set point and heat is off
-          damperMotor->moveNumDegrees(90);
-          isHeatOn = true;
+          damperMotor->moveToAngleDegrees(90);
+          _isHeatOn = true;
           Serial.println("Turning on heat.");
         }
       } else if (temp > potTempSetPoint)
       {
-        if (isHeatOnPos())
+        if (isHeatOn())
         {
           // Turn heat off if temp is above set point and heat is on
-          damperMotor->moveNumDegrees(-90);
-          isHeatOn = false;
+          damperMotor->moveToAngleDegrees(0);
+          _isHeatOn = false;
           Serial.println("Turning off heat.");
         }
       }
@@ -524,6 +572,8 @@ void setMoveStyle()
 {
   if (fetchArgs(1))
   {
+    Serial.println(">>> setMoveStyle");
+
     uint32_t moveStyle = fetchedArgs[0];
     
     if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
@@ -549,6 +599,8 @@ void moveNumSteps()
 {
   if (fetchArgs(2))
   {
+    Serial.println(">>> moveNumSteps");
+
     uint32_t numSteps = fetchedArgs[0];
     uint32_t dir = fetchedArgs[1];
     
@@ -591,7 +643,7 @@ void moveNumDegrees()
   if (fetchArgs(1))
   {
     int32_t degToRotate = fetchedArgs[0];
-    Serial.print("Degrees to rotate is ");
+    Serial.print(">>> Degrees to rotate is ");
     Serial.println(degToRotate);
     
     if ((degToRotate <= -1) && (degToRotate > -360) || (degToRotate >= 1) && (degToRotate < 360))
@@ -612,7 +664,7 @@ void moveToPosition()
   if (fetchArgs(1))
   {
     uint32_t newPos = fetchedArgs[0];
-    Serial.print("New position is ");
+    Serial.print(">>> New position is ");
     Serial.println(newPos);
     
     if ( (newPos < DAMPER_MTR_STEPS_PER_REV - 1) )
@@ -633,7 +685,7 @@ void moveToAngleDegrees()
   if (fetchArgs(1))
   {
     uint32_t newAngle = fetchedArgs[0];
-    Serial.print("New angle is ");
+    Serial.print(">>> New angle is ");
     Serial.println(newAngle);
     
     if ((newAngle >= 0) && (newAngle < 360))
@@ -659,7 +711,7 @@ void setJogSteps()
   if (fetchArgs(1))
   {
     uint32_t numJogSteps = fetchedArgs[0];
-    Serial.print("Jog Steps is ");
+    Serial.print(">>> Jog Steps is ");
     Serial.println(numJogSteps);
     
     // TODO - replace literal ints with enums
@@ -709,7 +761,7 @@ void setDamperSpeed()
     
     if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
     {
-      Serial.print("Damper speed set to ");
+      Serial.print(">>> Damper speed set to ");
       Serial.println(speed);
     }
     
@@ -729,24 +781,33 @@ void setDamperSpeed()
 
 void setBlowerSpeed()
 {
+  Serial.println(">>> setBlowerSpeed");
+
   if (fetchArgs(1))
   {
     uint32_t speed = fetchedArgs[0];
     
-    if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
+    Serial.print(">>>   blowerControlMode: ");
+    Serial.println(static_cast<uint8_t>(blowerControlMode));
+
+    if (blowerControlMode == BlowerControlMode::ManualUI)
     {
-      Serial.print("Blower speed set to ");
-      Serial.print(speed);
-      Serial.println("%");
-    }
-    
-    if (speed <= BLOWER_SPEED_PERCENT_MAX)
-    {
-      blowerSpeedUI = speed;
-      setBlowerSpeedAsPercent(uint8_t(speed));
-    } else
-    {
-      Serial.println("Argument out of range");
+      if (SERIAL_PARSER_DEBUG || SERIAL_PARSER_VERBOSE)
+      {
+        Serial.print("Blower speed set to ");
+        Serial.print(speed);
+        Serial.println("%");
+      }
+      
+      if (speed <= BLOWER_SPEED_PERCENT_MAX)
+      {
+        previousBlowerSpeedUI = blowerSpeedUI;
+        blowerSpeedUI = speed;
+        setBlowerSpeedAsPercent(uint8_t(speed));
+      } else
+      {
+        Serial.println("Argument out of range");
+      }
     }
   } else
   {
@@ -756,6 +817,7 @@ void setBlowerSpeed()
 
 void setBlowerSpeedAsPercent(uint8_t speed)
 {
+  currentBlowerSpdPercent = speed;
   fireBlower->setSpeedPercentage(speed);
   fireBlower->run(FORWARD);
 }
