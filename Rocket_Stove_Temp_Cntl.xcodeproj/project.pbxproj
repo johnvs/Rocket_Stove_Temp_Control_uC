@@ -1356,8 +1356,6 @@
 		AA2A170125112751AA0006A1 /* PettPlant.h in Sources */ = {isa = PBXBuildFile; fileRef = AAAA170125112751AA0006A1 /* PettPlant.h */; };
 		AA2A170125112751AA0006A3 /* Ping.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AAAA170125112751AA0006A3 /* Ping.cpp */; };
 		AA2A170125112751AA0006A4 /* Ping.h in Sources */ = {isa = PBXBuildFile; fileRef = AAAA170125112751AA0006A4 /* Ping.h */; };
-		AA2A170125112751AA0006A6 /* SerialCommandParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AAAA170125112751AA0006A6 /* SerialCommandParser.cpp */; };
-		AA2A170125112751AA0006A7 /* SerialCommandParser.h in Sources */ = {isa = PBXBuildFile; fileRef = AAAA170125112751AA0006A7 /* SerialCommandParser.h */; };
 		AA2A170125112751AA0006A9 /* algorithm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AAAA170125112751AA0006A9 /* algorithm.cpp */; };
 		AA2A170125112751AA0006AA /* associative_base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AAAA170125112751AA0006AA /* associative_base.cpp */; };
 		AA2A170125112751AA0006AB /* bitset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AAAA170125112751AA0006AB /* bitset.cpp */; };
@@ -1410,9 +1408,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		52042CEC1E3947CB000327FE /* TC_Interface_MAX31855 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TC_Interface_MAX31855; sourceTree = "<group>"; };
+		52042CEC1E3947CB000327FE /* TC_Interface_MAX31855.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TC_Interface_MAX31855.h; path = /Users/john/Documents/Software_Development/Arduino/libraries/TC_Interface_MAX31855/TC_Interface_MAX31855.h; sourceTree = "<absolute>"; };
 		521F1CB71F7CC9E700F30C8F /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		521F1CB81F7CC9E700F30C8F /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		521F1CBB1F7D960400F30C8F /* SerialCommandParser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SerialCommandParser.cpp; path = /Users/john/Documents/Software_Development/Arduino/libraries/SerialCommandParser/SerialCommandParser.cpp; sourceTree = "<absolute>"; };
+		521F1CBC1F7D960400F30C8F /* SerialCommandParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SerialCommandParser.h; path = /Users/john/Documents/Software_Development/Arduino/libraries/SerialCommandParser/SerialCommandParser.h; sourceTree = "<absolute>"; };
 		5263F8A51E39336D00BE9E3A /* Index */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Index; sourceTree = BUILT_PRODUCTS_DIR; };
 		5263F8A81E39336D00BE9E3A /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		5263F8AA1E39336D00BE9E3A /* Makefile */ = {isa = PBXFileReference; explicitFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
@@ -2640,8 +2640,8 @@
 		AAAA170125112751AA0005B1 /* XPT2046_Touchscreen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = XPT2046_Touchscreen.h; sourceTree = "<group>"; };
 		AAAA170125112751AA0005B4 /* Adafruit_MAX31855.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Adafruit_MAX31855.cpp; sourceTree = "<group>"; };
 		AAAA170125112751AA0005B5 /* Adafruit_MAX31855.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Adafruit_MAX31855.h; sourceTree = "<group>"; };
-		AAAA170125112751AA0005B7 /* Adafruit_MotorShield.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Adafruit_MotorShield.cpp; sourceTree = "<group>"; };
-		AAAA170125112751AA0005B8 /* Adafruit_MotorShield.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Adafruit_MotorShield.h; sourceTree = "<group>"; };
+		AAAA170125112751AA0005B7 /* Adafruit_MotorShield.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Adafruit_MotorShield.cpp; path = /Users/john/Documents/Software_Development/Arduino/libraries/Adafruit_Motorshield/Adafruit_MotorShield.cpp; sourceTree = "<absolute>"; };
+		AAAA170125112751AA0005B8 /* Adafruit_MotorShield.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Adafruit_MotorShield.h; path = /Users/john/Documents/Software_Development/Arduino/libraries/Adafruit_Motorshield/Adafruit_MotorShield.h; sourceTree = "<absolute>"; };
 		AAAA170125112751AA0005BA /* Adafruit_MS_PWMServoDriver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Adafruit_MS_PWMServoDriver.cpp; sourceTree = "<group>"; };
 		AAAA170125112751AA0005BB /* Adafruit_MS_PWMServoDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Adafruit_MS_PWMServoDriver.h; sourceTree = "<group>"; };
 		AAAA170125112751AA0005BD /* Adafruit_MotorShield_Teensy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Adafruit_MotorShield_Teensy.cpp; sourceTree = "<group>"; };
@@ -2788,8 +2788,6 @@
 		AAAA170125112751AA0006A1 /* PettPlant.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PettPlant.h; sourceTree = "<group>"; };
 		AAAA170125112751AA0006A3 /* Ping.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Ping.cpp; sourceTree = "<group>"; };
 		AAAA170125112751AA0006A4 /* Ping.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Ping.h; sourceTree = "<group>"; };
-		AAAA170125112751AA0006A6 /* SerialCommandParser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SerialCommandParser.cpp; sourceTree = "<group>"; };
-		AAAA170125112751AA0006A7 /* SerialCommandParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SerialCommandParser.h; sourceTree = "<group>"; };
 		AAAA170125112751AA0006A9 /* algorithm.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = algorithm.cpp; sourceTree = "<group>"; };
 		AAAA170125112751AA0006AA /* associative_base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = associative_base.cpp; sourceTree = "<group>"; };
 		AAAA170125112751AA0006AB /* bitset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bitset.cpp; sourceTree = "<group>"; };
@@ -5923,7 +5921,7 @@
 				AAAA170125112751AA0006A2 /* Ping */,
 				AAAA170125112751AA0006A5 /* SerialCommandParser */,
 				AAAA170125112751AA0006A8 /* StandardCplusplus */,
-				52042CEC1E3947CB000327FE /* TC_Interface_MAX31855 */,
+				52042CEC1E3947CB000327FE /* TC_Interface_MAX31855.h */,
 				AAAA170125112751AA0006D8 /* Ticker */,
 			);
 			name = Libraries;
@@ -6483,8 +6481,8 @@
 		AAAA170125112751AA0006A5 /* SerialCommandParser */ = {
 			isa = PBXGroup;
 			children = (
-				AAAA170125112751AA0006A6 /* SerialCommandParser.cpp */,
-				AAAA170125112751AA0006A7 /* SerialCommandParser.h */,
+				521F1CBB1F7D960400F30C8F /* SerialCommandParser.cpp */,
+				521F1CBC1F7D960400F30C8F /* SerialCommandParser.h */,
 			);
 			path = SerialCommandParser;
 			sourceTree = "<group>";
@@ -8225,8 +8223,6 @@
 				AA2A170125112751AA0006A1 /* PettPlant.h in Sources */,
 				AA2A170125112751AA0006A3 /* Ping.cpp in Sources */,
 				AA2A170125112751AA0006A4 /* Ping.h in Sources */,
-				AA2A170125112751AA0006A6 /* SerialCommandParser.cpp in Sources */,
-				AA2A170125112751AA0006A7 /* SerialCommandParser.h in Sources */,
 				AA2A170125112751AA0006A9 /* algorithm.cpp in Sources */,
 				AA2A170125112751AA0006AA /* associative_base.cpp in Sources */,
 				AA2A170125112751AA0006AB /* bitset.cpp in Sources */,
