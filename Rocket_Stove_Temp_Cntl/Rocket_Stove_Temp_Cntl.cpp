@@ -1,34 +1,20 @@
-///
-/// @mainpage	Rocket_Stove_Temp_Cntl
-///
-/// @details	Controls a damper motor and blower to control the temperature of a rocket stove.
-///
-/// @author		john
-/// @date		1/25/17 11:26 AM
-/// @version	<#version#>
-///
-/// @copyright	(c) john, 2017 All rights reserved
-///
-/// @see		ReadMe.txt for references
-///
-/// @file		Rocket_Stove_Temp_Cntl.cpp
-///
-
-
-//#include "Arduino.h"
 /*
- This is a test sketch for the Adafruit assembled Motor Shield for Arduino v2
- It won't work with v1.x motor shields! Only for the v2's with built in PWM
- control
+ Rocket Stove Temperature Controller Firmware
+
+ Copyright (c) john van strien, 2017 All rights reserved
  
- */
+ This project controls a damper motor and blower to control the temperature of a rocket stove.
 
-/*
- *  Analog pin usage from PETT_PLANT
- const uint8_t FAN_SPEED_POT_PIN = 14;        // Input ADC pin for audio data.
- pinMode(FAN_SPEED_POT_PIN, INPUT);
- samples[sampleCounter] = (float32_t)analogRead(FAN_SPEED_POT_PIN);
- */
+ It is designed to run on a Teensy 3.2 and consists of the following hardware:
+   - a Sparkfun Arduino shield adapter (P/N KIT-13288)
+   - an Adafruit Motor Shield for Arduino v2 (P/N 1438)
+   - two thermocouples
+   - two Adafruit TC interface boards (P/N 269)
+   - a stepper motor
+   - a home sensor (for the stepper motor)
+   - a 12VDC blower motor
+   - a 12VDC power supply
+*/
 
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
@@ -41,15 +27,15 @@
 // Reading of TC 1 in ice water was +1.50C
 // Reading of TC 2 in ice water was +1.75C
 // Reading of TC 3 in ice water was +1.50C
-const float WATER_POT_TC_ZERO_OFFSET = -1.5;  // Reading of TC 1 in ice water was +1.50C
+const float WATER_POT_TC_ZERO_OFFSET = -1.5;
 
 const uint8_t WATER_POT_CHIP_SELECT_PIN = 9;
 const uint8_t HOME_SENSOR_PIN = 7;
 const uint8_t FLUE_CHIP_SELECT_PIN = 10;
 
-const uint8_t FAN_SPEED_POT_PIN = 14;           // Blower motor speed control potentiometer
+const uint8_t FAN_SPEED_POT_PIN = 14;         // Blower motor speed control potentiometer
 
-TC_Interface_MAX31855 waterPotTcInterface;  // Create TC interface objects
+TC_Interface_MAX31855 waterPotTcInterface;    // Create TC interface objects
 TC_Interface_MAX31855 flueTcInterface;
 
 const bool SERIAL_PARSER_DEBUG = true;
