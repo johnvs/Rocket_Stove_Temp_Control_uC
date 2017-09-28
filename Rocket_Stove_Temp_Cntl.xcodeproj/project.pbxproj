@@ -1411,6 +1411,8 @@
 
 /* Begin PBXFileReference section */
 		52042CEC1E3947CB000327FE /* TC_Interface_MAX31855 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TC_Interface_MAX31855; sourceTree = "<group>"; };
+		521F1CB71F7CC9E700F30C8F /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		521F1CB81F7CC9E700F30C8F /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		5263F8A51E39336D00BE9E3A /* Index */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Index; sourceTree = BUILT_PRODUCTS_DIR; };
 		5263F8A81E39336D00BE9E3A /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		5263F8AA1E39336D00BE9E3A /* Makefile */ = {isa = PBXFileReference; explicitFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
@@ -2843,6 +2845,8 @@
 		5263F8901E39336D00BE9E3A = {
 			isa = PBXGroup;
 			children = (
+				521F1CB71F7CC9E700F30C8F /* LICENSE */,
+				521F1CB81F7CC9E700F30C8F /* README.md */,
 				5263F8A71E39336D00BE9E3A /* Rocket_Stove_Temp_Cntl */,
 				5263F8A61E39336D00BE9E3A /* Products */,
 			);
